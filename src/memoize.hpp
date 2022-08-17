@@ -51,9 +51,19 @@ namespace std
 }
 
 namespace mem {
+    
     namespace { inline constexpr size_t default_cache_size = 128;}
 
+     namespace traits
+    {
+        template <typename T>
+        concept Cachable = 
+            (
+                !std::is_void_v<T> && !std::is_reference_v<T>
+            );
+    }
 template <typename Key, typename Val>
+requires traits::Cachable<Key> && traits::Cachable<Val>
 struct LRUCache
 {
 
@@ -64,7 +74,9 @@ public:
         :m_cap(capacity)
     { }
 
-    void cache(Key&& key, Val&& value)
+    template <typename Key_, typename Val_>
+    requires (std::is_convertible_v<Key_, Key> && std::is_convertible_v<Val_, Val>)
+    void cache(Key_&& key, Val_&& value)
     {
         if (!m_map.contains(key)) {
             if (m_cache.size() == m_cap) {
@@ -100,7 +112,7 @@ inline auto memoize(std::function<R(Args...)> fn, size_t cache_size = default_ca
         auto memo = cache[pargs];
         if (!memo) {
             auto result = std::apply(fn, pargs);
-            cache.cache(std::move(pargs), std::move(result));
+            cache.cache(std::move(pargs), result);
             return result;
         }
         return *memo;
