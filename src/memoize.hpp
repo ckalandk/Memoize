@@ -39,8 +39,8 @@ namespace std
     template<typename... Args>
     struct hash<tuple<Args...>>
     {
-        typedef tuple<Args...> argument_type;
-        typedef std::size_t result_type;
+        using argument_type = tuple<Args...>;
+        using result_type   = std::size_t;
 
         constexpr result_type operator()(argument_type const& in) const
         {
