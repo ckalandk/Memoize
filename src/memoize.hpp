@@ -57,17 +57,17 @@ namespace mem {
      namespace traits
     {
         template <typename T>
-        concept Cachable = 
-            (
-                !std::is_void_v<T> && !std::is_reference_v<T>
-            );
+        concept Hashable = requires(T t)
+        {
+            {std::hash<T>{}(t)} -> std::convertible_to<std::size_t>;
+        };
     }
 template <typename Key, typename Val>
-requires traits::Cachable<Key> && traits::Cachable<Val>
+requires traits::Hashable<Key>
 struct LRUCache
 {
 
-    using Map = std::unordered_map<Key, typename std::list<Val>::const_iterator>;
+    using Map = std::unordered_map<std::remove_cvref_t<Key>, typename std::list<Val>::const_iterator>;
 
 public:
     constexpr explicit LRUCache(size_t capacity = default_cache_size)
@@ -103,6 +103,7 @@ private:
 };
 
 template <typename R, typename... Args>
+requires (traits::Hashable<std::remove_cvref_t<Args>> && ...)
 inline auto memoize(std::function<R(Args...)> fn, size_t cache_size = default_cache_size)
 {
     using packed = std::tuple<Args...>;
