@@ -2,3 +2,5 @@ build/
 _build/
 .ccls-cache/
 .vscode/
+out/
+.vs/

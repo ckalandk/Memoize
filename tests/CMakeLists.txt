@@ -2,20 +2,37 @@ cmake_minimum_required(VERSION 3.22.1)
 
 project(tests)
 
+find_package(Catch2 CONFIG REQUIRED)
 
-add_executable(memoize_test main.cpp )
-
-find_package(benchmark REQUIRED)
+add_executable(lrucache-test lru.test.cpp)
+add_executable(memoize-test memoize.test.cpp)
 
 target_include_directories(
-    memoize_test INTERFACE
+lrucache-test 
+  INTERFACE 
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_include_directories(
+memoize-test
+  INTERFACE
     ${CMAKE_SOURCE_DIR}/src
 )
 
 target_link_libraries(
-memoize_test INTERFACE
-  Memoize::Memoize
+lrucache-test 
+  INTERFACE Memoize::Memoize 
+  PRIVATE Catch2::Catch2 Catch2::Catch2WithMain
 )
 
-target_compile_features(memoize_test PRIVATE cxx_std_20)
-target_link_libraries(memoize_test PRIVATE benchmark::benchmark)
+target_link_libraries(
+memoize-test
+  INTERFACE Memoize::Memoize
+  PRIVATE Catch2::Catch2 Catch2::Catch2WithMain
+)
+
+include(CTest)
+enable_testing()
+include(Catch)
+catch_discover_tests(lrucache-test)
+catch_discover_tests(memoize-test)

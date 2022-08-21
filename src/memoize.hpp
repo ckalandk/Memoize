@@ -9,6 +9,7 @@
 #include <tuple>
 #include <functional>
 #include <optional>
+#include <ranges>
 
 namespace private_
 {
@@ -79,7 +80,7 @@ public:
 
     template <typename Key_, typename Val_>
         requires (std::is_convertible_v<Key_, Key>&& std::is_convertible_v<Val_, Val>)
-    void cache(Key_&& key, Val_&& value)
+    constexpr void cache(Key_&& key, Val_&& value)
     {
         if (!m_map.contains(key)) {
             if (m_cache.size() == m_cap) {
@@ -97,12 +98,17 @@ public:
         m_map[m_cache.cbegin()->first] = m_cache.cbegin();
     }
 
-    std::optional<Val> operator[](Key const& key) {
+    constexpr std::optional<Val> operator[](Key const& key) {
         if (m_map.contains(key)) {
             return m_map[key]->second;
         }
         return {};
     }
+
+    constexpr size_t capacity() const { return m_cap; }
+    constexpr size_t size() const { return m_cache.size(); }
+
+    auto cache_values() const { return m_cache | std::views::values; }
 
 private:
     Cache m_cache;
@@ -112,7 +118,7 @@ private:
 
 template <typename R, typename... Args>
 requires (traits::Hashable<std::remove_cvref_t<Args>> && ...)
-inline auto memoize(std::function<R(Args...)> fn, size_t cache_size = default_cache_size)
+constexpr inline auto memoize(std::function<R(Args...)> fn, size_t cache_size = default_cache_size)
 {
     using packed = std::tuple<Args...>;
     LRUCache<packed, R> cache(cache_size);
@@ -129,7 +135,7 @@ inline auto memoize(std::function<R(Args...)> fn, size_t cache_size = default_ca
 }
 
 template <typename R, typename... Args>
-inline auto memoize(R (&fn)(Args...), size_t cache_size = default_cache_size)
+constexpr inline auto memoize(R (&fn)(Args...), size_t cache_size = default_cache_size)
 {
     return memoize<R, Args...>(std::function<R(Args...)>{fn}, cache_size);
 }
