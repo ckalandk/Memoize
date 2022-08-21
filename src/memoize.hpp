@@ -63,11 +63,14 @@ namespace mem {
         };
     }
 template <typename Key, typename Val>
-requires traits::Hashable<Key>
+    requires traits::Hashable<Key>
 struct LRUCache
 {
-
-    using Map = std::unordered_map<std::remove_cvref_t<Key>, typename std::list<Val>::const_iterator>;
+    using key_type = std::remove_cvref_t<Key>;
+    using mapped_type = Val;
+    using Cache = std::list<std::pair<key_type, mapped_type>>;
+    using iterator = typename Cache::const_iterator;
+    using Map = std::unordered_map<key_type, iterator>;
 
 public:
     constexpr explicit LRUCache(size_t capacity = default_cache_size)
@@ -75,29 +78,34 @@ public:
     { }
 
     template <typename Key_, typename Val_>
-    requires (std::is_convertible_v<Key_, Key> && std::is_convertible_v<Val_, Val>)
+        requires (std::is_convertible_v<Key_, Key>&& std::is_convertible_v<Val_, Val>)
     void cache(Key_&& key, Val_&& value)
     {
         if (!m_map.contains(key)) {
             if (m_cache.size() == m_cap) {
+                m_map.erase(m_cache.back().first);
                 m_cache.pop_back();
             }
         }
         else {
+            if (m_map[key] == m_cache.cbegin())
+                return;
             m_cache.erase(m_map[key]);
         }
-        m_cache.push_front(std::forward<Val>(value));
-        m_map.emplace(std::forward<Key>(key), m_cache.cbegin());
+        auto p = std::make_pair(std::forward<Key_>(key), std::forward<Val_>(value));
+        m_cache.push_front(std::move(p));
+        m_map[m_cache.cbegin()->first] = m_cache.cbegin();
     }
 
     std::optional<Val> operator[](Key const& key) {
-       if (m_map.contains(key)) {
-            return *m_map[key];
-       }
-       return {};
+        if (m_map.contains(key)) {
+            return m_map[key]->second;
+        }
+        return {};
     }
+
 private:
-    std::list<Val> m_cache;
+    Cache m_cache;
     Map m_map;
     const size_t m_cap;
 };
